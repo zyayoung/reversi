@@ -151,6 +151,8 @@ void REPL::loop() {
             Position pos = ai.begin();
             ai.putChess(pos.x, pos.y, ME);
             cout << pos << endl;
+            ai.Display();
+            return 0;
         } else if (command == TURN) {
             int x, y;
             char temp;
