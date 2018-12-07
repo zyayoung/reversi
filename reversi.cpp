@@ -26,7 +26,7 @@ struct Position {
 };
 
 ostream &operator<<(ostream &out, const Position &pos) {
-    return out << (char) ('a' + pos.y) << " " << (1 + pos.x);
+    return out << (pos.x) << " " << (pos.y);
 }
 
 struct _movement{
@@ -146,13 +146,13 @@ void REPL::loop() {
             --y;
             board[y][x] = z;
         } else if (command == DONE) {
-            cout << "OK" << endl;
+            // cout << "OK" << endl;
         } else if (command == BEGIN) {
             Position pos = ai.begin();
             ai.putChess(pos.x, pos.y, ME);
-            cout << pos << endl;
-            ai.Display();
-            return 0;
+            // cout << pos << endl;
+            // ai.Display();
+            return;
         } else if (command == TURN) {
             int x, y;
             char temp;
@@ -347,9 +347,10 @@ int AI::Search(int depth, int alpha, int beta, int CurrentPlayer = 1){
         board[x][y] = who;
 
         int val = -Search(depth - 1, -beta, -alpha, 3 - CurrentPlayer);
-        // if(depth == MAX_DEPTH){
-        //     printf("%d %d %d\n", x, y, val);
-        // }
+        if(depth == MAX_DEPTH){
+            printf("%d %d %d\n", x, y, val);
+            Display();
+        }
         
         // unputChess
         while(movesPos--){
