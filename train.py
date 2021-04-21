@@ -56,8 +56,10 @@ def evaluate(model, test_size):
 
 
 def train(model):
-    import wandb
-    wandb.init(project='reversi')
+    # import wandb
+    # wandb.init(project='reversi')
+    from tensorboardX import SummaryWriter
+    writer = SummaryWriter(flush_secs=30)
 
     optim = torch.optim.Adam(model.parameters(), weight_decay=1e-4)
     sched = MultiStepLR(optim, 10000, [ITERS/10*8, ITERS/10*9])
@@ -95,7 +97,8 @@ def train(model):
             sched.step()
 
             if iter % 100 == 0:
-                wandb.log({"loss_q": loss_q, "loss_p": loss_p})
+                writer.add_scalar("loss_q", loss_q, iter)
+                writer.add_scalar("loss_p", loss_p, iter)
             pbar.set_description_str(f"q: {loss_q:.4f}; p: {loss_p:.4f}")
 
         p_prev = pred[:, -1]
@@ -106,7 +109,7 @@ def train(model):
         if iter % 2000 == 0:
             if iter % 100000 == 0:
                 torch.save(model.state_dict(), bk_dir + f"/checkpoint{iter//100000:04d}.pth")
-            wandb.log({"win_std": evaluate(model, 100)})
+            writer.add_scalar("win_std", evaluate(model, 100), iter)
 
 
 if __name__ == '__main__':
