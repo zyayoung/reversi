@@ -85,7 +85,7 @@ def train(model):
                 gt = -F.softplus(pred[:, -1])
                 gt[win_prev != 3] = win_prev[win_prev != 3].float() / 2
                 residue = gt - p_prev
-            loss_p = F.binary_cross_entropy_with_logits(p_prev, gt.detach().exp())
+            loss_p = F.binary_cross_entropy_with_logits(p_prev, gt.exp())
             loss_q = (residue * q_prev).mean()
             loss = loss_p + loss_q
 
@@ -100,7 +100,7 @@ def train(model):
 
         p_prev = -F.softplus(-pred[:, -1])
         q_prev = F.cross_entropy(pred - (~valid_mask * 1e12), s, reduction='none')
-        q_prev[s == 64] = 1
+        q_prev[s == 64] = 0
         win_prev = win
 
         if iter % 2000 == 0:

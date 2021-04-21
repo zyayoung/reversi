@@ -35,23 +35,18 @@ class ReversiNet(nn.Module):
                 last_c = c
         self.resblocks = nn.Sequential(*blocks)
         self.out = nn.Sequential(
-            Conv2d(last_c, 64, 1),
+            Conv2d(last_c, 32, 1),
             nn.ReLU(),
             nn.Flatten(),
-            Linear(64 * 8 * 8, 512),
+            Linear(32 * 8 * 8, 1024),
             nn.ReLU(),
-            Linear(512, 1024),
-            nn.ReLU(),
+            Linear(1024, 65),
         )
-
-        self.out1 = Linear(1024, 1)
-        self.out2 = Conv2d(last_c, 1, 1)
         self.device = device
         self.to(device)
 
         self.quant = torch.quantization.QuantStub()
-        self.dequant1 = torch.quantization.DeQuantStub()
-        self.dequant2 = torch.quantization.DeQuantStub()
+        self.dequant = torch.quantization.DeQuantStub()
 
     def forward(self, x):
         x = F.pad(x, (1, 1, 1, 1))
@@ -64,10 +59,7 @@ class ReversiNet(nn.Module):
 
         x = self.quant(x)
         x = self.resblocks(x)
-        feat = self.out(x)
-        p = self.dequant1(self.out1(feat))
-        q = self.dequant2(self.out2(x)).flatten(1)
-        return torch.cat([q, p], dim=-1)
+        return self.dequant(self.out(x))
 
     def convert(self, w: torch.tensor, b: torch.tensor):
         x = w.new_zeros((w.size(0), 2, 64))
