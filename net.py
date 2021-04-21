@@ -47,8 +47,9 @@ class ConvBNActivation(nn.Sequential):
         norm_layer: Optional[Callable[..., nn.Module]] = None,
         activation_layer: Optional[Callable[..., nn.Module]] = None,
         dilation: int = 1,
+        padding = None
     ) -> None:
-        padding = (kernel_size - 1) // 2 * dilation
+        padding = padding if padding is not None else ((kernel_size - 1) // 2 * dilation )
         if norm_layer is None:
             norm_layer = _BatchNorm2d
         if activation_layer is None:
@@ -183,7 +184,7 @@ class MobileNetV3(nn.Module):
         # building first layer
         firstconv_output_channels = inverted_residual_setting[0].input_channels
         layers.append(ConvBNActivation(3, firstconv_output_channels, kernel_size=3, stride=1, norm_layer=norm_layer,
-                                       activation_layer=nn.Hardswish))
+                                       activation_layer=nn.Hardswish, padding=0))
 
         # building inverted residual blocks
         for cnf in inverted_residual_setting:
