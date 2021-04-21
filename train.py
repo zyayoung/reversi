@@ -8,7 +8,7 @@ from tqdm import tqdm
 import datetime
 
 
-ITERS = 2000000
+ITERS = 10000000
 BATCH_SIZE = 128
 device = 'cuda'
 
@@ -59,8 +59,8 @@ def train(model):
     import wandb
     wandb.init(project='reversi')
 
-    optim = torch.optim.SGD(model.parameters(), 0.01, momentum=0.9, weight_decay=1e-4)
-    sched = MultiStepLR(optim, milestones=[ITERS/10*8, ITERS/10*9])
+    optim = torch.optim.Adam(model.parameters(), weight_decay=1e-4)
+    sched = MultiStepLR(optim, 10000, [ITERS/10*8, ITERS/10*9])
 
     data_b = torch.zeros((BATCH_SIZE,), dtype=torch.long)
     data_w = torch.zeros((BATCH_SIZE,), dtype=torch.long)
