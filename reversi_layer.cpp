@@ -329,14 +329,14 @@ std::vector<torch::Tensor> reversi_forward(torch::Tensor data_b, torch::Tensor d
       w_it[i] = 0x0000001008000000;
     } else {
       result_it[i] = 3;
-      // if (rand() % 2) {
-      //   b_it[i] = flip(b_it[i]);
-      //   w_it[i] = flip(w_it[i]);
-      // }
-      // if (rand() % 2) {
-      //   b_it[i] = rotate_cw(b_it[i]);
-      //   w_it[i] = rotate_cw(w_it[i]);
-      // }
+      if (rand() % 2) {
+        b_it[i] = flip(b_it[i]);
+        w_it[i] = flip(w_it[i]);
+      }
+      if (rand() % 2) {
+        b_it[i] = rotate_cw(b_it[i]);
+        w_it[i] = rotate_cw(w_it[i]);
+      }
     }
   }
 
