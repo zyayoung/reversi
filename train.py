@@ -82,10 +82,10 @@ def train(model):
         # Compute and print loss
         if win_prev is not None:
             with torch.no_grad():
-                gt = -F.softplus(pred[:, -1])
+                gt = 1 - pred[:, -1].sigmoid()
                 gt[win_prev != 3] = win_prev[win_prev != 3].float() / 2
-                residue = gt - p_prev
-            loss_p = F.binary_cross_entropy_with_logits(p_prev, gt.exp())
+                residue = -F.softplus(pred[:, -1]) - p_prev
+            loss_p = F.binary_cross_entropy_with_logits(p_prev, gt)
             loss_q = (residue * q_prev).mean()
             loss = loss_p + loss_q
 
