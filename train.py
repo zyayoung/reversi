@@ -74,7 +74,8 @@ def train(model):
     p_prev = None
     q_prev = None
     win_prev = None
-    for iter in tqdm(range(ITERS)):
+    pbar = tqdm(range(ITERS))
+    for iter in pbar:
         pred = model(convert(data_b, data_w).to(device)).to('cpu')
         s, win, valid_mask = reversi_layer_cpp.forward(data_b, data_w, pred)
 
@@ -85,7 +86,7 @@ def train(model):
                 gt[win_prev != 3] = win_prev[win_prev != 3].float() / 2
                 residue = (p_prev - gt).pow(2)
             loss_p = F.binary_cross_entropy(p_prev, gt.detach())
-            loss_q = - ((gt - p_prev).detach() * (q_prev + 1e-12).log()).mean()
+            loss_q = ((gt - p_prev).detach() * q_prev).mean()
             loss = loss_p + loss_q
 
             optim.zero_grad()
@@ -95,10 +96,10 @@ def train(model):
 
             if iter % 100 == 0:
                 wandb.log({"loss_q": loss_q, "loss_p": loss_p})
+            pbar.set_description_str(f"q: {loss_q:.4f}; p: {loss_p:.4f}")
 
         p_prev = pred[:, -1]
-        q_prev = pred / torch.sum(pred * valid_mask, dim=-1, keepdim=True)
-        q_prev = q_prev[torch.arange(BATCH_SIZE), s]
+        q_prev = F.cross_entropy(pred - (~valid_mask * 1e12), s, reduction='none')
         q_prev[s == 64] = 1
         win_prev = win
 

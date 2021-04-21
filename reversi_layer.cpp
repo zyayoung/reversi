@@ -292,10 +292,16 @@ std::vector<torch::Tensor> reversi_forward(torch::Tensor data_b, torch::Tensor d
       w_it[i] = (int64_t)(b);
       valid_mask_it[i * 65 + 64] = 1;
     } else {
+      float prob_max = -1e45;
+      for (int j = 0; j < 64; j++) {
+        if ((avail >> j) & 1) {
+          prob_max = fmax(prob_max, pred_it[j]);
+        }
+      }
       float prob_sum = 0;
       for (int j = 0; j < 64; j++) {
         if ((avail >> j) & 1) {
-          prob_sum += pred_it[j];
+          prob_sum += exp(pred_it[j] - prob_max);
           valid_mask_it[i * 65 + j] = 1;
         }
       }
@@ -303,7 +309,7 @@ std::vector<torch::Tensor> reversi_forward(torch::Tensor data_b, torch::Tensor d
       float _rand = rand() * prob_sum / RAND_MAX;
       for (int j = 0; j < 64; j++) {
         if ((avail >> j) & 1) {
-          _rand -= pred_it[j];
+          _rand -= exp(pred_it[j] - prob_max);
           selection_it[i] = j;
           if (_rand <= 0) break;
         }

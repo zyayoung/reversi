@@ -3,6 +3,23 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from layers import _Conv2d, _Linear, _BatchNorm2d
+class ResBlock(nn.Module):
+    def __init__(self, D_in, D, train):
+        super().__init__()
+        Conv2d = _Conv2d if train else nn.Conv2d
+        BatchNorm2d = _BatchNorm2d if train else nn.BatchNorm2d
+        self.h1 = Conv2d(D_in, D, 3, 1, 1, bias=False)
+        self.bn1 = BatchNorm2d(D)
+        self.relu1 = nn.ReLU()
+        self.h2 = Conv2d(D, D, 3, 1, 1, bias=False)
+        self.bn2 = BatchNorm2d(D)
+        self.relu2 = nn.ReLU()
+        self.skip_add = nn.quantized.FloatFunctional()
+
+    def forward(self, x):
+        t = self.relu1(self.bn1(self.h1(x)))
+        t = self.bn2(self.h2(t))
+        return self.relu2(self.skip_add.add(x, t))
 
 
 class ReversiNet(nn.Module):
@@ -11,25 +28,24 @@ class ReversiNet(nn.Module):
         last_c = cfg[0][1]
         Conv2d = _Conv2d if train else nn.Conv2d
         Linear = _Linear if train else nn.Linear
-        self.resblocks = nn.Sequential(
-            Conv2d(3, 32, 3, bias=False), _BatchNorm2d(32), nn.ReLU(),
-            Conv2d(32, 32, 1, bias=False), _BatchNorm2d(32), nn.ReLU(),
-            Conv2d(32, 64, 3, bias=False), _BatchNorm2d(64), nn.ReLU(),
-            Conv2d(64, 64, 1, bias=False), _BatchNorm2d(64), nn.ReLU(),
-            Conv2d(64, 128, 3, bias=False), _BatchNorm2d(128), nn.ReLU(),
-            Conv2d(128, 128, 1, bias=False), _BatchNorm2d(128), nn.ReLU(),
-            Conv2d(128, 256, 3, bias=False), _BatchNorm2d(256), nn.ReLU(),
-            Conv2d(256, 256, 1, bias=False), _BatchNorm2d(256), nn.ReLU(),
-            Conv2d(256, 512, 2, bias=False), _BatchNorm2d(512), nn.ReLU(),
-        )
+        blocks = [Conv2d(3, last_c, 3), nn.ReLU()]
+        for n, c in cfg:
+            for i in range(n):
+                blocks.append(ResBlock(last_c, c, train))
+                last_c = c
+        self.resblocks = nn.Sequential(*blocks)
         self.out = nn.Sequential(
+            Conv2d(last_c, 64, 1),
+            nn.ReLU(),
             nn.Flatten(),
+            Linear(64 * 8 * 8, 512),
+            nn.ReLU(),
             Linear(512, 1024),
             nn.ReLU(),
         )
 
         self.out1 = Linear(1024, 1)
-        self.out2 = Linear(1024, 64)
+        self.out2 = Conv2d(last_c, 1, 1)
         self.device = device
         self.to(device)
 
@@ -50,8 +66,7 @@ class ReversiNet(nn.Module):
         x = self.resblocks(x)
         feat = self.out(x)
         p = self.dequant1(self.out1(feat)).sigmoid()
-        q = self.dequant2(self.out2(feat)).flatten(1)
-        q = (q - q.detach().max(-1, keepdims=True).values).exp()
+        q = self.dequant2(self.out2(x)).flatten(1)
         return torch.cat([q, p], dim=-1)
 
     def convert(self, w: torch.tensor, b: torch.tensor):
