@@ -3,3 +3,7 @@ runs
 backup
 wandb
 __pycache__
+data
+dist
+build
+reversi_layer_cpp.egg-info
