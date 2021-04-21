@@ -276,13 +276,13 @@ std::vector<torch::Tensor> reversi_forward(torch::Tensor data_b, torch::Tensor d
   auto options = torch::TensorOptions().dtype(torch::kBool);
   auto valid_mask = torch::zeros_like(pred, options);
 
-  auto b_it = data_b.contiguous().data_ptr<int64_t>();
-  auto w_it = data_w.contiguous().data_ptr<int64_t>();
-  auto result_it = result.contiguous().data_ptr<int64_t>();
-  auto selection_it = selection.contiguous().data_ptr<int64_t>();
-  auto valid_mask_it = valid_mask.contiguous().data_ptr<bool>();
+  auto b_it = data_b.data_ptr<int64_t>();
+  auto w_it = data_w.data_ptr<int64_t>();
+  auto result_it = result.data_ptr<int64_t>();
+  auto selection_it = selection.data_ptr<int64_t>();
+  auto valid_mask_it = valid_mask.data_ptr<bool>();
+  auto pred_it = pred.accessor<float, 2>();
   for (int i = 0; i < batch_size; i++) {
-    auto pred_it = pred.select(0, i).contiguous().data_ptr<float>();
     Grid b = b_it[i];
     Grid w = w_it[i];
     Grid avail = pure_avail(b, w);
@@ -295,13 +295,13 @@ std::vector<torch::Tensor> reversi_forward(torch::Tensor data_b, torch::Tensor d
       float prob_max = -1e45;
       for (int j = 0; j < 64; j++) {
         if ((avail >> j) & 1) {
-          prob_max = fmax(prob_max, pred_it[j]);
+          prob_max = fmax(prob_max, pred_it[i][j]);
         }
       }
       float prob_sum = 0;
       for (int j = 0; j < 64; j++) {
         if ((avail >> j) & 1) {
-          prob_sum += exp(pred_it[j] - prob_max);
+          prob_sum += exp(pred_it[i][j] - prob_max);
           valid_mask_it[i * 65 + j] = 1;
         }
       }
@@ -309,7 +309,7 @@ std::vector<torch::Tensor> reversi_forward(torch::Tensor data_b, torch::Tensor d
       float _rand = rand() * prob_sum / RAND_MAX;
       for (int j = 0; j < 64; j++) {
         if ((avail >> j) & 1) {
-          _rand -= exp(pred_it[j] - prob_max);
+          _rand -= exp(pred_it[i][j] - prob_max);
           selection_it[i] = j;
           if (_rand <= 0) break;
         }
