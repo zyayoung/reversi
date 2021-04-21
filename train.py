@@ -112,10 +112,5 @@ def train(model):
 if __name__ == '__main__':
     model = ReversiNet(train=True).to(device)
     # model = torch.nn.DataParallel(model)
-    # model = torch.jit.script(model)
-
-    # with open("w.pth", "rb") as f:
-    #     state = torch.load(f, map_location=device)
-    #     model.load_state_dict(state, strict=False)
     train(model)
     torch.save(model.state_dict(), bk_dir + "/w.pth")
