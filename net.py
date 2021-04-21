@@ -65,7 +65,7 @@ class ReversiNet(nn.Module):
         x = self.quant(x)
         x = self.resblocks(x)
         feat = self.out(x)
-        p = self.dequant1(self.out1(feat)).sigmoid()
+        p = self.dequant1(self.out1(feat))
         q = self.dequant2(self.out2(x)).flatten(1)
         return torch.cat([q, p], dim=-1)
 

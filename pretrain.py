@@ -74,9 +74,9 @@ def train(model):
         # Compute and print loss
         if win_prev is not None:
             with torch.no_grad():
-                gt = 1 - pred[:, -1]
+                gt = 1 - -F.soft_plus(-pred[:, -1])
                 gt[win_prev != 3] = win_prev[win_prev != 3].float() / 2
-            loss_p = F.binary_cross_entropy(p_prev, gt.detach())
+            loss_p = F.binary_cross_entropy_with_logits(p_prev, gt.detach())
             loss_q = q_prev.mean()
             loss = loss_p + loss_q
 
@@ -89,7 +89,7 @@ def train(model):
                 wandb.log({"loss_q": loss_q, "loss_p": loss_p})
             pbar.set_description_str(f"q: {loss_q:.4f}; p: {loss_p:.4f}")
 
-        p_prev = pred[:, -1]
+        p_prev = -F.soft_plus(-pred[:, -1])
         q_prev = F.cross_entropy(pred - (~valid_mask * 1e12), s, reduction='none')
         q_prev[s == 64] = 1
         win_prev = win
